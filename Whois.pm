@@ -1,5 +1,5 @@
 # -*- mode:Perl -*-
-# $Id: Whois.pm,v 1.2 1997/04/22 04:39:17 chip Beta $
+# $Id: Whois.pm,v 1.4 1997/05/23 03:40:00 chip Beta $
 
 package Net::Whois;
 BEGIN { require 5.003 }
@@ -42,12 +42,18 @@ domain's "whois" information from the InterNIC.  If the constructor
 returns a reference, that reference can be used to access the various
 attributes of the domains' whois entry.
 
+Note that the Locale::Country module (part of the Locale-Codes
+distribution) is used to recognize spelled-out country names; if that
+module is not present, only two-letter country abbreviations will be
+recognized.
+
 The server consulted is "whois.internic.net", unless this is changed
 by a call to Net::Whois::server().
 
 =head1 AUTHOR
 
-Originally written by Chip Salzenberg in April of 1997.
+Originally written by Chip Salzenberg in April of 1997 for Idle
+Communications, Inc.
 
 =head1 COPYRIGHT
 
@@ -60,7 +66,7 @@ use IO::Socket;
 use Carp;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -68,6 +74,66 @@ require Exporter;
 
 my $server_name = 'whois.internic.net';
 my $server_addr;
+
+my %US_State = (
+	AL => 'ALABAMA',
+	AK => 'ALASKA',
+	AZ => 'ARIZONA',
+	AR => 'ARKANSAS',
+	CA => 'CALIFORNIA',
+	CO => 'COLORADO',
+	CT => 'CONNECTICUT',
+	DE => 'DELAWARE',
+	DC => 'DISTRICT OF COLUMBIA',
+	FL => 'FLORIDA',
+	GA => 'GEORGIA',
+	GU => 'GUAM',
+	HI => 'HAWAII',
+	ID => 'IDAHO',
+	IL => 'ILLINOIS',
+	IN => 'INDIANA',
+	IA => 'IOWA',
+	KS => 'KANSAS',
+	KY => 'KENTUCKY',
+	LA => 'LOUISIANA',
+	ME => 'MAINE',
+	MH => 'MARSHALL ISLANDS',
+	MD => 'MARYLAND',
+	MA => 'MASSACHUSETTS',
+	MI => 'MICHIGAN',
+	MN => 'MINNESOTA',
+	MS => 'MISSISSIPPI',
+	MO => 'MISSOURI',
+	MT => 'MONTANA',
+	'NE' => 'NEBRASKA',
+	NV => 'NEVADA',
+	NH => 'NEW HAMPSHIRE',
+	NJ => 'NEW JERSEY',
+	NM => 'NEW MEXICO',
+	NY => 'NEW YORK',
+	NC => 'NORTH CAROLINA',
+	ND => 'NORTH DAKOTA',
+	MP => 'NORTHERN MARIANA ISLANDS',
+	OH => 'OHIO',
+	OK => 'OKLAHOMA',
+	OR => 'OREGON',
+	PA => 'PENNSYLVANIA',
+	PR => 'PUERTO RICO',
+	RI => 'RHODE ISLAND',
+	SC => 'SOUTH CAROLINA',
+	SD => 'SOUTH DAKOTA',
+	TN => 'TENNESSEE',
+	TX => 'TEXAS',
+	UT => 'UTAH',
+	VT => 'VERMONT',
+	VI => 'VIRGIN ISLANDS',
+	VA => 'VIRGINIA',
+	WA => 'WASHINGTON',
+	WV => 'WEST VIRGINIA',
+	WI => 'WISCONSIN',
+	WY => 'WYOMING',
+);
+@US_State{values %US_State} = keys %US_State;
 
 #
 # Simple function.
@@ -104,6 +170,16 @@ sub _connect {
 package Net::Whois::Domain;
 use Carp;
 
+BEGIN {
+    if (eval { require Locale::Country }) {
+	Locale::Country->import(qw(code2country country2code));
+    }
+    else {
+	*code2country = sub { ($_[0] =~ /^[^\W\d_]{2}$/i) && $_[0] };
+	*country2code = sub { undef };
+    }
+}
+
 sub new {
     my $class = @_ ? shift : 'Net::Whois';
     @_ == 1 or croak "usage: new $class DOMAIN";
@@ -133,12 +209,20 @@ sub new {
     if (! defined $t) {
 	# do nothing
     }
-    elsif ($t =~ /^[A-Z]{2,3}$/) {
-	pop;
-	$t = 'US' if $t =~ /^usa$/i;
-    }
-    elsif ($t =~ /[A-Z]{2}\s+\d{5}(?:-\d{4})?$/) {
+    elsif ($t =~ /^(?:usa|u\.\s*s\.\s*a\.)$/i) {
+	pop @t;
 	$t = 'US';
+    }
+    elsif (code2country($t)) {
+	pop @t;
+	$t = uc $t;
+    }
+    elsif (my $code = country2code($t)) {
+	pop @t;
+	$t = uc $code;
+    }
+    elsif ($t =~ /,\s*([^,]+?)(?:\s+\d{5}(?:-\d{4})?)?$/) {
+	$t = $US_State{uc $1} ? 'US' : undef;
     }
     else {
 	undef $t;
