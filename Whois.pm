@@ -1,6 +1,9 @@
 # -*- mode:CPerl -*-
-# $Id: Whois.pm,v 1.2 1999/07/25 03:01:04 dhudes Exp $
+# $Id: Whois.pm,v 1.3 1999/08/08 22:53:54 dhudes Exp $
 # $Log: Whois.pm,v $
+# Revision 1.3  1999/08/08 22:53:54  dhudes
+# change \r and \n in network connection to \x0d\x0a for portability
+#
 # Revision 1.2  1999/07/25 03:01:04  dhudes
 # 1. Fix to address changes by Network Solutions in response to WHOIS requests
 # (strip out leading disclaimer)
@@ -217,16 +220,16 @@ sub new {
     $target_server = $TLDs {$tld};
     $server_name = $target_server if defined $target_server;
     $sock = Net::Whois::_connect();
-    print	$sock "dom $domain\r\n";
+    print	$sock "dom $domain\x0d\x0a";
     undef	$/; $text = <$sock>;
     undef	$sock;
     $text || die "No data returned from server";
     
     if ($text =~ /single out one record/) {
-      return unless $text =~ /\((.+?)\)[ \t]+\Q$domain\E\r?\n/i;
+      return unless $text =~ /\((.+?)\)[ \t]+\Q$domain\E\x0d?\n/i;
       my	$newdomain = $1;
       $sock = Net::Whois::_connect();
-      print $sock "dom $newdomain\r\n";
+      print $sock "dom $newdomain\x0d\x0a";
       {
         undef $/; $text = <$sock>;
       }

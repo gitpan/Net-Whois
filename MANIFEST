@@ -2,4 +2,4 @@ MANIFEST		You're reading it
 Makefile.PL		Makefile Maker
 README			Who's Who, What's What
 Whois.pm		The cause of all this
-t.pl   			Exerciser
+test.pl   			Exerciser
