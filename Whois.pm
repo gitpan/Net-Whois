@@ -46,6 +46,7 @@ use Carp;
 Net::Whois - Get and parse "whois" domain data from InterNIC
 
 =head1 SYNOPSIS
+
 Note that all fields except "name" and "tag" may be undef
 because "whois" information is erratically filled in.
 
@@ -248,7 +249,8 @@ sub new {
     $target_server = $TLDs {$tld};
     $server_name = $target_server if defined $target_server;
     $sock = Net::Whois::_connect();
-    print	$sock "dom $domain\x0d\x0a";
+#    print	$sock "dom $domain\x0d\x0a";
+    print       $sock "$domain\x0d\x0a";
     {
         local $/; $text = <$sock>;
     }
