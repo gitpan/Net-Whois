@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: whois_dom,v 1.1 1997/04/22 04:40:48 chip Beta $
+# $Id: whois,v 1.2 1997/04/22 04:21:33 chip Exp $
 #
 # Test driver for Net::Whois module
 #
@@ -8,8 +8,8 @@ BEGIN { require 5.003_97 }
 use strict;
 use Net::Whois;
 
-my $w = new Net::Whois::Domain $ARGV[0]
-   or die "Can't find info on domain $ARGV[0]\n";
+my $w = new Net::Whois $ARGV[0]
+   or die "Can't find info on $ARGV[0]\n";
 
 print "Domain: ", $w->domain, "\n";
 print "Name: ", $w->name, "\n";
