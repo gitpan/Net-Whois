@@ -1,13 +1,14 @@
-README for Net::Whois Version 0.20
-$Id: README,v 1.3 1997/05/23 03:39:41 chip Beta $
+README for Net::Whois Version 1.0
+#	$Id: README,v 1.2 1999/07/25 03:17:40 dhudes Exp $	
+
 
 This is a Perl 5 module that retrieves and parses information from the
-InterNIC 'whois' database.  If you are behind a firewall, you probably
-won't be able to use this module.
+'whois' databases. Currently, only domains .com, .edu, .net are supported.
+Forthcoming versions will support .mil, .gov, .arpa, and eventually other top-level domains. Additional classes to get POC/Handle, Host, and all the other
+things stored in the ARIN and 'InterNIC' whois databases and eventually
+the RIPE and others as well.
 
-This version supports only the information about domains.  Future work
-may include information about people and other entities about which
-the InterNIC keeps data.
+If you are behind a firewall, you may not  be able to use this module.
 
 See the documentation in Whois.pm for instructions on how to use it.
 
@@ -16,5 +17,4 @@ distribution) is used to recognize spelled-out country names; if that
 module is not present, only two-letter country abbreviations will be
 recognized.
 
-Thanks to Idle Communications (idle.com) for sponsoring this software
-and providing the perl.org domain.
+Thanks to Chip for writing the original version of this module.
