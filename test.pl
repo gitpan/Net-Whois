@@ -4,7 +4,7 @@ use strict;
 use Carp;
 require 'Whois.pm';
 
-my $dom = "agis.net"; 
+my $dom = "hudes.org"; 
 my $w = new Net::Whois::Domain $dom; 
 unless (defined $w) {carp "Can't connect to Whois server\n";}
 

@@ -1,6 +1,15 @@
 # -*- mode:CPerl -*-
-# $Id: Whois.pm,v 1.3 1999/08/08 22:53:54 dhudes Exp $
+# N.B. revision control headers below reflect only recent work
+# $Header
+# $Id: Whois.pm,v 1.401 1999/08/13 22:11:39 dhudes Exp dhudes $
 # $Log: Whois.pm,v $
+# Revision 1.401  1999/08/13 22:11:39  dhudes
+# Revised POD to reflect dual-maintainers
+#
+# Revision 1.4  1999/08/09 00:05:44  dhudes
+# local /$ rather than undef /$
+# Thanks to Chris Nandor for pointing this out
+#
 # Revision 1.3  1999/08/08 22:53:54  dhudes
 # change \r and \n in network connection to \x0d\x0a for portability
 #
@@ -15,7 +24,7 @@
 #
 
 package Net::Whois;
-BEGIN { require 5.003 }
+BEGIN { require 5.005 }
 use strict;
 use Carp;
 
@@ -79,10 +88,13 @@ planned will send the query to the appropriate server based on its TLD.
 
 =head1 AUTHOR
 
-Originally written by Chip Salzenberg in April of 1997 for Idle
-Communications, Inc. In September of 1998 Dana Hudes found this
-but it was broken and he needed it so he fixed it and took over active
-development. Dana Hudes can be contacte via e-mail to dhudes@hudes.org
+Originally written by Chip Salzenberg (chip@pobox.com) 
+in April of 1997 for Idle Communications, Inc. 
+In September of 1998 Dana Hudes (dhudes@hudes.org) found this
+but it was broken and he needed it so he fixed it.
+In August, 1999 Dana and Chip agreed to become co-maintainers of the module.
+Dana released a new version of Net::Whois to CPAN and resumed active
+development. 
 
 =head1 COPYRIGHT
 
@@ -99,7 +111,8 @@ use Carp;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 
 
-$VERSION = '1.0';
+#$VERSION = '1.0';
+$VERSION = '$REVISION' ;
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -221,17 +234,19 @@ sub new {
     $server_name = $target_server if defined $target_server;
     $sock = Net::Whois::_connect();
     print	$sock "dom $domain\x0d\x0a";
-    undef	$/; $text = <$sock>;
+    {
+        local $/; $text = <$sock>;
+    }
     undef	$sock;
     $text || die "No data returned from server";
     
     if ($text =~ /single out one record/) {
-      return unless $text =~ /\((.+?)\)[ \t]+\Q$domain\E\x0d?\n/i;
+      return unless $text =~ /\((.+?)\)[ \t]+\Q$domain\E\x0d?\x0a/i;
       my	$newdomain = $1;
       $sock = Net::Whois::_connect();
       print $sock "dom $newdomain\x0d\x0a";
       {
-        undef $/; $text = <$sock>;
+        local $/; $text = <$sock>;
       }
       undef $sock;
       $text || die "No data from server";
@@ -243,7 +258,9 @@ sub new {
 # if (defined			      $FH) {
 #   print			      $FH $text;
 # }
-    my @text = split / *\r?\n/, $text;
+
+    my @text = split / *\x0d?\x0a/, $text;
+    for (@text) {s/^ +//}
     my (@t, $t, $c);
     my $flag = 1;
     $t= shift @text;
@@ -381,7 +398,6 @@ sub ok {
   $self->[0]->{MATCH};
 }
 ;
-
 
 
 
