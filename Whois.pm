@@ -1,5 +1,5 @@
 # -*- mode:Perl -*-
-# $Id: Whois.pm,v 1.1 1997/04/22 04:17:14 chip Beta $
+# $Id: Whois.pm,v 1.13 1999/01/30 03:00:24 chip Exp $
 
 package Net::Whois;
 BEGIN { require 5.003 }
@@ -11,7 +11,7 @@ Net::Whois - Get and parse "whois" data from InterNIC
 
 =head1 SYNOPSIS
 
-    my $w = new Net::Whois $dom
+    my $w = new Net::Whois::Domain $dom
         or die "Can't find info on $dom\n";
     #
     # Note that all fields except "name" and "tag" may be undef
@@ -23,28 +23,44 @@ Net::Whois - Get and parse "whois" data from InterNIC
     print "Address:\n", map { "    $_\n" } $w->address;
     print "Country: ", $w->country, "\n";
     print "Servers:\n", map { "    $$_[0] ($$_[1])\n" } @{$w->servers};
-    if (my $c = $w->contacts) {
+    my ($c, $t);
+    if ($c = $w->contacts) {
         print "Contacts:\n";
-        for my $t (sort keys %$c) {
+        for $t (sort keys %$c) {
             print "    $t:\n";
             print map { "\t$_\n" } @{$$c{$t}};
         }
     }
+
+    print "Domain Status:    ", $w->status,           "\n"
+        if $w->status;
+    print "Record Created:   ", $w->record_created,   "\n";
+        if $w->record_created;;
+    print "Record Updated:   ", $w->record_updated,   "\n";
+    print "Database Updated: ", $w->database_updated, "\n";
 
     $cur_server = Net::Whois::server;
     Net::Whois::server 'new.whois.server';  # optional
 
 =head1 DESCRIPTION
 
-Net::Whois::new() attempts to retrieve and parse the given domain's
-"whois" information from the InterNIC ("whois.internic.net", unless
-changed by Net::Whois::server()).  If the constructor returns a
-reference, that reference can be used to access the various attributes
-of the domains' whois entry.
+Net::Whois::Domain new() attempts to retrieve and parse the given
+domain's "whois" information from the InterNIC.  If the constructor
+returns a reference, that reference can be used to access the various
+attributes of the domains' whois entry.
+
+Note that the Locale::Country module (part of the Locale-Codes
+distribution) is used to recognize spelled-out country names; if that
+module is not present, only two-letter country abbreviations will be
+recognized.
+
+The server consulted is "whois.internic.net", unless this is changed
+by a call to Net::Whois::server().
 
 =head1 AUTHOR
 
-Originally written by Chip Salzenberg in April of 1997.
+Originally written by Chip Salzenberg in April of 1997 for Idle
+Communications, Inc.
 
 =head1 COPYRIGHT
 
@@ -57,7 +73,7 @@ use IO::Socket;
 use Carp;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 
-$VERSION = '0.01';
+$VERSION = '0.23';
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -65,6 +81,66 @@ require Exporter;
 
 my $server_name = 'whois.internic.net';
 my $server_addr;
+
+my %US_State = (
+	AL => 'ALABAMA',
+	AK => 'ALASKA',
+	AZ => 'ARIZONA',
+	AR => 'ARKANSAS',
+	CA => 'CALIFORNIA',
+	CO => 'COLORADO',
+	CT => 'CONNECTICUT',
+	DE => 'DELAWARE',
+	DC => 'DISTRICT OF COLUMBIA',
+	FL => 'FLORIDA',
+	GA => 'GEORGIA',
+	GU => 'GUAM',
+	HI => 'HAWAII',
+	ID => 'IDAHO',
+	IL => 'ILLINOIS',
+	IN => 'INDIANA',
+	IA => 'IOWA',
+	KS => 'KANSAS',
+	KY => 'KENTUCKY',
+	LA => 'LOUISIANA',
+	ME => 'MAINE',
+	MH => 'MARSHALL ISLANDS',
+	MD => 'MARYLAND',
+	MA => 'MASSACHUSETTS',
+	MI => 'MICHIGAN',
+	MN => 'MINNESOTA',
+	MS => 'MISSISSIPPI',
+	MO => 'MISSOURI',
+	MT => 'MONTANA',
+	'NE' => 'NEBRASKA',
+	NV => 'NEVADA',
+	NH => 'NEW HAMPSHIRE',
+	NJ => 'NEW JERSEY',
+	NM => 'NEW MEXICO',
+	NY => 'NEW YORK',
+	NC => 'NORTH CAROLINA',
+	ND => 'NORTH DAKOTA',
+	MP => 'NORTHERN MARIANA ISLANDS',
+	OH => 'OHIO',
+	OK => 'OKLAHOMA',
+	OR => 'OREGON',
+	PA => 'PENNSYLVANIA',
+	PR => 'PUERTO RICO',
+	RI => 'RHODE ISLAND',
+	SC => 'SOUTH CAROLINA',
+	SD => 'SOUTH DAKOTA',
+	TN => 'TENNESSEE',
+	TX => 'TEXAS',
+	UT => 'UTAH',
+	VT => 'VERMONT',
+	VI => 'VIRGIN ISLANDS',
+	VA => 'VIRGINIA',
+	WA => 'WASHINGTON',
+	WV => 'WEST VIRGINIA',
+	WI => 'WISCONSIN',
+	WY => 'WYOMING',
+);
+@US_State{values %US_State} = keys %US_State;
 
 #
 # Simple function.
@@ -79,37 +155,69 @@ sub server {
     $ret;
 }
 
-sub new {
-    my $class = @_ ? shift : 'Net::Whois';
-    @_ == 1 or croak "usage: new $class DOMAIN";
-    my ($domain) = @_;
-
+sub _connect {
     unless ($server_addr) {
 	my $a = gethostbyname $server_name;
 	$server_addr = inet_ntoa($a) if $a;
     }
-    $server_addr or croak 'Net::Whois::new: no server';
+    $server_addr or croak 'Net::Whois:: no server';
 
-    my $sock = new IO::Socket(Domain => AF_INET,
-			      PeerAddr => $server_addr,
-			      PeerPort => 'whois',
-			      Proto => 'tcp')
-	or croak "Net::Whois::new: Can't connect to $server_name: $@";
+    my $sock = IO::Socket::INET->new(PeerAddr => $server_addr,
+				     PeerPort => 'whois',
+				     Proto => 'tcp')
+	or croak "Net::Whois: Can't connect to $server_name: $@";
     $sock->autoflush;
-    print $sock "dom $domain\r\n";
-    my $text;
-    { undef $/; $text = <$sock> }
-    $sock->close;
+    $sock;
+}
 
+#----------------------------------------------------------------
+# Net::Whois::Domain
+#----------------------------------------------------------------
+
+package Net::Whois::Domain;
+use Carp;
+
+BEGIN {
+    if (eval { require Locale::Country }) {
+	Locale::Country->import(qw(code2country country2code));
+    }
+    else {
+	*code2country = sub { ($_[0] =~ /^[^\W\d_]{2}$/i) && $_[0] };
+	*country2code = sub { undef };
+    }
+}
+
+sub new {
+    my $class = @_ ? shift : 'Net::Whois';
+    @_ == 1 or croak "usage: new $class DOMAIN";
+    my ($domain) = @_;
+    my $text;
+
+    my $sock = Net::Whois::_connect();
+    print $sock "dom $domain\r\n";
+    { local $/; $text = <$sock> }
+    undef $sock;
     $text || return;
+
+    if ($text =~ /single out one record/) {
+	return unless $text =~ /\((.+?)\)[ \t]+\Q$domain\E\r?\n/i;
+	my $newdomain = $1;
+	$sock = Net::Whois::_connect();
+	print $sock "dom $newdomain\r\n";
+	{ local $/; $text = <$sock> }
+	undef $sock;
+	$text || return;
+    }
 
     $text =~ s/^ +//gm;
     my @text = split / *\r?\n/, $text;
-    my ($t, @t);
+    my (@t, $t, $c);
 
     my %info;
 
-    $t = shift @text;
+    do {
+	$t = shift @text;
+    } while (@text && ($t eq '' || $t =~ /^registrant:/i));
     @info{'NAME', 'TAG'} = ($t =~ /^(.*)\s+\((\S+)\)$/)
 	or return;
 
@@ -119,12 +227,20 @@ sub new {
     if (! defined $t) {
 	# do nothing
     }
-    elsif ($t =~ /^[A-Z]{2,3}$/) {
-	pop;
-	$t = 'US' if $t =~ /^usa$/i;
-    }
-    elsif ($t =~ /[A-Z]{2}\s+\d{5}(?:-\d{4})?$/) {
+    elsif ($t =~ /^(?:usa|u\.\s*s\.\s*a\.)$/i) {
+	pop @t;
 	$t = 'US';
+    }
+    elsif (code2country($t)) {
+	pop @t;
+	$t = uc $t;
+    }
+    elsif ($c = country2code($t)) {
+	pop @t;
+	$t = uc $c;
+    }
+    elsif ($t =~ /,\s*([^,]+?)(?:\s+\d{5}(?:-\d{4})?)?$/) {
+	$t = $US_State{uc $1} ? 'US' : undef;
     }
     else {
 	undef $t;
@@ -144,19 +260,23 @@ sub new {
 		last if $text[0] =~ /contact.*:$/i;
 		push @c, shift @text;
 	    }
-	    @{$info{CONTACTS}}{map {uc} @ctypes} = (\@c) x @ctypes;
+	    @{$info{CONTACTS}}{map { uc $_ } @ctypes} = (\@c) x @ctypes;
 	}
-	elsif ($t =~ /^record created on (\S+)\.$/) {
-	    $info{CREATED} = $1;
+	elsif ($t =~ /^domain status:\s+(.*)$/i) {
+	    $info{STATUS} = $1;
 	}
-	elsif ($t =~ /^record last updated on (\S+)\.$/) {
-	    $info{UPDATED} = $1;
+	elsif ($t =~ /^record created on (.*)\.$/i) {
+	    $info{RECORD_CREATED} = $1;
+	}
+	elsif ($t =~ /^(record|database) last updated on (.*)\.$/i) {
+	    $info{"\U$1_UPDATED"} = $2;
 	}
 	elsif ($t =~ /^domain servers/i) {
 	    my @s;
 	    shift @text unless $text[0];
 	    while ($t = shift @text) {
-		push @s, [split /\s+/, $t];
+		next unless $t =~ s/\s*(\d{1,3}(?:\.\d{1,3}){3})$//;
+		push @s, [$t, $1];
 	    }
 	    $info{SERVERS} = \@s;
 	}
@@ -196,6 +316,11 @@ sub contacts {
     $self->[0]->{CONTACTS};
 }
 
+sub status {
+    my $self = shift;
+    $self->[0]->{STATUS};
+}
+
 sub servers {
     my $self = shift;
     $self->[0]->{SERVERS};
@@ -209,6 +334,11 @@ sub record_created {
 sub record_updated {
     my $self = shift;
     $self->[0]->{RECORD_UPDATED};
+}
+
+sub database_updated {
+    my $self = shift;
+    $self->[0]->{DATABASE_UPDATED};
 }
 
 1;
