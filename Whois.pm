@@ -1,8 +1,12 @@
 # -*- mode:CPerl -*-
 # N.B. revision control headers below reflect only recent work
 # $Header
-# $Id: Whois.pm,v 1.5 1999/08/29 15:09:26 dhudes Exp $
+# $Id: Whois.pm,v 1.6 1999/08/31 11:57:12 dhudes Exp $
 # $Log: Whois.pm,v $
+# Revision 1.6  1999/08/31 11:57:12  dhudes
+# Don't require 5.005, only 5.004 and don't do it in a BEGIN
+# per CPAN tester pudge@pobox.comm
+#
 # Revision 1.5  1999/08/29 15:09:26  dhudes
 # Fixes for new Network Solutions response when domain unregistered:
 # 1. break out of the loop that scans through the leading boilerplate
@@ -32,7 +36,7 @@
 #
 
 package Net::Whois;
-BEGIN { require 5.005 }
+require 5.004;
 use strict;
 use Carp;
 
