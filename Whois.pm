@@ -1,5 +1,5 @@
 # -*- mode:Perl -*-
-# $Id: Whois.pm,v 1.4 1997/05/23 03:40:00 chip Beta $
+# $Id: Whois.pm,v 1.5 1997/06/10 03:00:28 chip Beta $
 
 package Net::Whois;
 BEGIN { require 5.003 }
@@ -66,7 +66,7 @@ use IO::Socket;
 use Carp;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 
-$VERSION = '0.21';
+$VERSION = '0.22';
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -184,18 +184,27 @@ sub new {
     my $class = @_ ? shift : 'Net::Whois';
     @_ == 1 or croak "usage: new $class DOMAIN";
     my ($domain) = @_;
+    my $text;
 
     my $sock = Net::Whois::_connect();
     print $sock "dom $domain\r\n";
-    my $text;
     { undef $/; $text = <$sock> }
-    $sock->close;
-
+    undef $sock;
     $text || return;
+
+    if ($text =~ /single out one record/) {
+	return unless $text =~ /\((.+?)\)[ \t]+\Q$domain\E\r?\n/i;
+	my $newdomain = $1;
+	$sock = Net::Whois::_connect();
+	print $sock "dom $newdomain\r\n";
+	{ undef $/; $text = <$sock> }
+	undef $sock;
+	$text || return;
+    }
 
     $text =~ s/^ +//gm;
     my @text = split / *\r?\n/, $text;
-    my ($t, @t);
+    my (@t, $t, $c);
 
     my %info;
 
@@ -217,9 +226,9 @@ sub new {
 	pop @t;
 	$t = uc $t;
     }
-    elsif (my $code = country2code($t)) {
+    elsif ($c = country2code($t)) {
 	pop @t;
-	$t = uc $code;
+	$t = uc $c;
     }
     elsif ($t =~ /,\s*([^,]+?)(?:\s+\d{5}(?:-\d{4})?)?$/) {
 	$t = $US_State{uc $1} ? 'US' : undef;
