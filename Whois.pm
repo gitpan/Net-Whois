@@ -1,8 +1,9 @@
 # -*- mode:CPerl -*-
 # N.B. revision control headers below reflect only recent work
 # $Header
-# $Id: Whois.pm,v 1.6 1999/08/31 11:57:12 dhudes Exp $
+# $Id: Whois.pm,v 1.6 1999/12/01 14:00:51 dhudes Exp dhudes $
 # $Log: Whois.pm,v $
+#
 # Revision 1.6  1999/08/31 11:57:12  dhudes
 # Don't require 5.005, only 5.004 and don't do it in a BEGIN
 # per CPAN tester pudge@pobox.comm
@@ -47,6 +48,9 @@ Net::Whois - Get and parse "whois" domain data from InterNIC
 =head1 SYNOPSIS
 Note that all fields except "name" and "tag" may be undef
 because "whois" information is erratically filled in.
+
+use Net::Whois;
+use Carp;
 
  my $w = new Net::Whois::Domain $dom
  or die "Can't connect to Whois server\n;
@@ -131,7 +135,7 @@ require Exporter;
 
 my $server_name = 'whois.internic.net';
 my $server_addr;
-my %TLDs = ( COM => 'whois.internic.net', NET => 'whois.internic.net', EDU => 'whois.internic.net', ORG => 'whois.internic.net', ARPA =>'whois.arin.net', MIL =>'whois.nic.mil');
+my %TLDs = ( COM => 'whois.networksolutions.com', NET => 'whois.networksolutions.com', EDU => 'whois.networksolutions.com', ORG => 'whois.networksolutions.com', ARPA =>'whois.arin.net', MIL =>'whois.nic.mil');
 my %US_State = (
   AL => 'ALABAMA',
   AK => 'ALASKA',
