@@ -1,8 +1,16 @@
 # -*- mode:CPerl -*-
 # N.B. revision control headers below reflect only recent work
 # $Header
-# $Id: Whois.pm,v 1.401 1999/08/13 22:11:39 dhudes Exp dhudes $
+# $Id: Whois.pm,v 1.5 1999/08/29 15:09:26 dhudes Exp $
 # $Log: Whois.pm,v $
+# Revision 1.5  1999/08/29 15:09:26  dhudes
+# Fixes for new Network Solutions response when domain unregistered:
+# 1. break out of the loop that scans through the leading boilerplate
+# when the string "No match" is found as well as when "REGISTRANT" is found.
+# 2. If no match, set the MATCH to 0 (if there is a match, MATCH is set to 1)
+# and (very important) test this value before looking for the record fields
+# If match is 0, skip to the end and bless the structure. Caller tests by invoking the method 'ok' 1 match 0 no match
+#
 # Revision 1.401  1999/08/13 22:11:39  dhudes
 # Revised POD to reflect dual-maintainers
 #
@@ -111,8 +119,7 @@ use Carp;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 
 
-#$VERSION = '1.0';
-$VERSION = '$REVISION' ;
+$VERSION = '1.5';
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -264,7 +271,7 @@ sub new {
     my (@t, $t, $c);
     my $flag = 1;
     $t= shift @text;
-    until (!defined $t || $t =~ /Registrant/)
+    until (!defined $t || $t =~ /Registrant/ || $t =~ /No match/)
       {
 	$t = shift @text;
     }
@@ -277,10 +284,10 @@ sub new {
     if (/Registrant/) {
       $t = shift @text;
       $info{'MATCH'} = 1;
-      } elsif (/No match for domain/) {
+      } elsif (/No match/) {
       $info{'MATCH'} = 0;
     }
-    
+    if ($info{'MATCH'} ) { 
     @info{'NAME', 'TAG'} = (	      $t =~ /^(.*)\s+\((\S+)\)$/)
     or die "Registrant Name not found in returned information";
     
@@ -335,6 +342,7 @@ sub new {
 	  $info{SERVERS} = \@s;
       }
     }
+	}
   };
   
   if ($@) {
@@ -398,6 +406,8 @@ sub ok {
   $self->[0]->{MATCH};
 }
 ;
+
+
 
 
 
