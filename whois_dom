@@ -1,0 +1,32 @@
+#!/usr/bin/perl -w
+# $Id: whois_dom,v 1.1 1997/04/22 04:40:48 chip Beta $
+#
+# Test driver for Net::Whois module
+#
+
+BEGIN { require 5.003_97 }
+use strict;
+use Net::Whois;
+
+my $w = new Net::Whois::Domain $ARGV[0]
+   or die "Can't find info on domain $ARGV[0]\n";
+
+print "Domain: ", $w->domain, "\n";
+print "Name: ", $w->name, "\n";
+print "Tag: ", $w->tag, "\n";
+if (my @a = $w->address) {
+    print "Address:\n", map { "    $_\n" } @a;
+}
+if (my $c = $w->country) {
+    print "Country: ", $w->country, "\n";
+}
+if (my $s = $w->servers) {
+    print "Servers:\n", map { "    $$_[0] ($$_[1])\n" } @$s;
+}
+if (my $c = $w->contacts) {
+    print "Contacts:\n";
+    for my $t (sort keys %$c) {
+	print "    $t:\n";
+	print map { "\t$_\n" } @{$$c{$t}};
+    }
+}

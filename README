@@ -1,0 +1,12 @@
+README for Net::Whois Version 0.20
+$Id: README,v 1.1 1997/04/22 04:43:41 chip Beta $
+
+This is a Perl 5 module that retrieves and parses information from the
+InterNIC 'whois' database.  If you are behind a firewall, you probably
+won't be able to use this module.
+
+This version supports only the information about domains.  Future work
+may include information about people and other entities about which
+the InterNIC keeps data.
+
+See the documentation in Whois.pm for instructions on how to use it.
