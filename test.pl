@@ -28,7 +28,7 @@ if ($c = $w->contacts) {
 }
 
 print "Record created:", $w->record_created ;
-print "\nRecord updated:", $w->record_updated\n ;
+print "\nRecord updated:", $w->record_updated,"\n";
 
 
 

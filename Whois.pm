@@ -128,7 +128,7 @@ use Carp;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 
 
-$VERSION = '1.5';
+$VERSION = '1.9';
 
 require Exporter;
 @ISA = qw(Exporter);
